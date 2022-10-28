@@ -7,9 +7,10 @@ const loggerMiddleware = function(req, res, next) {
     next();
 }
 
+// incrementing and decrementing within limits
 const limitedIncrement = (current, limit) => (current === limit)? current: current + 1;
 const limitedDecrement = (current, limit) => (current === limit)? current: current - 1;
-    
+
 const fillTokenBucket = (bucket) => {
     const newTokens = limitedIncrement(bucket.tokens, bucket.capacity);
     return [
@@ -33,36 +34,43 @@ const emptyTokenBucket = (bucket) => {
 }
 
 
-var tokenBucket = {
-    capacity: 10,
-    tokens: 10
-};
+// createTokenBucket: given a capacity, return fill function, and processRequest function
+// Can be tested using fill function.
+// Just like (real) Object Oriented :-) . You send it messages and that's it!
+const createTokenBucket = (capacity) => {
+    var tokenBucket = {
+        capacity: capacity,
+        tokens: capacity 
+    };
 
-const twoSeconds = 2000;
+    const fill = () => {
+        const [newBucket, _success] = fillTokenBucket(tokenBucket);
+        tokenBucket = newBucket;
+    }
 
-setInterval(() => {
-    const [newBucket, success] = fillTokenBucket(tokenBucket);
-    tokenBucket = newBucket;
-}, twoSeconds);
-
-const processRequest = () => {
-    const [newBucket, success] = emptyTokenBucket(tokenBucket);
-    tokenBucket = newBucket;
-    return success;
+    const processRequest = () => {
+        const [newBucket, success] = emptyTokenBucket(tokenBucket);
+        tokenBucket = newBucket;
+        return success;
+    }
+    return [fill, processRequest];
 }
 
+// Setup the bucket:
+const bucketCapacity = 4;
+const [fill, processRequest] = createTokenBucket(bucketCapacity);
+const twoSeconds = 2000;
+setInterval(() => {
+    fill();
+}, twoSeconds);
 
-
-
+// middleware limiter:
 const serviceRateLimiterMiddleware = (req, res, next) => {
-    console.log("tokenBucket: " + JSON.stringify(tokenBucket));
-    const shouldProcessRequest = processRequest();
-    console.log({shouldProcessRequest})
-    if (!shouldProcessRequest) {
-        res.status(429).send({});
+    if (processRequest()) {
+        next();
         return;
     }
-    next();
+    res.status(429).send({});
 }
 
 app.use(loggerMiddleware);
