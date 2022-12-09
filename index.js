@@ -13,20 +13,19 @@ const limitedValue = require('./limitedValue');
 // Can be tested using fill function.
 // Just like (real) Object Oriented :-) . You send it messages and that's it!
 const createTokenBucket = (capacity) => {
-    const limits = limitedValue.getLimits(0, capacity);
-    var tokenCount = capacity;
+    var bucket = limitedValue.create(0, capacity, capacity);
 
     const fill = () => {
-        const newCount = limitedValue.add(limits, tokenCount, 1);
-        const success = newCount != tokenCount;
-        tokenCount = newCount;
+        const newBucket = bucket.add(1);
+        const success = newBucket.value != bucket.value;
+        bucket = newBucket;
         return success;
     }
 
     const processRequest = () => {
-        const newCount = limitedValue.subtract(limits, tokenCount, 1);
-        const success = newCount != tokenCount;
-        tokenCount = newCount;
+        const newBucket = bucket.subtract(1);
+        const success = newBucket.value != bucket.value;
+        bucket = newBucket;
         return success;
     }
     return {fill, processRequest};
