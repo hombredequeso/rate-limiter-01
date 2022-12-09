@@ -7,25 +7,25 @@ const loggerMiddleware = function(req, res, next) {
     next();
 }
 
-const limitedValue = require('./limitedValue');
+const LimitedValue = require('./limitedValue');
 
 // createTokenBucket: given a capacity, return fill function, and processRequest function
 // Can be tested using fill function.
 // Just like (real) Object Oriented :-) . You send it messages and that's it!
 const createTokenBucket = (capacity) => {
-    var bucket = limitedValue.create(0, capacity, capacity);
+    var limited = new LimitedValue(0, capacity, capacity);
 
     const fill = () => {
-        const newBucket = bucket.add(1);
-        const success = newBucket.value != bucket.value;
-        bucket = newBucket;
+        const filled = limited.add(1);
+        const success = filled.value != limited.value;
+        limited = filled;
         return success;
     }
 
     const processRequest = () => {
-        const newBucket = bucket.subtract(1);
-        const success = newBucket.value != bucket.value;
-        bucket = newBucket;
+        const emptied = limited.subtract(1);
+        const success = emptied.value != limited.value;
+        limited = emptied;
         return success;
     }
     return {fill, processRequest};

@@ -1,29 +1,23 @@
-const limitValue = (limits, a) => {
-    if (a < limits.min) return limits.min;
-    if (a > limits.max) return limits.max;
+const limitValue = (min, max, a) => {
+    if (a < min) return min;
+    if (a > max) return max;
     return a;
 }
 
-const add = (limited, x) => {
-    let that = {
-        limits: limited.limits,
-        value: limitValue(limited.limits, limited.value + x)
-    };
-    that.add = (x) => {return add(that, x)}
-    that.subtract = (x) => {return add(that,-x)}
-    return that;
+function LimitedValue(min, max, value) {
+    this.min = min;
+    this.max = max;
+    this.value = limitValue(this.min, this.max, value);
+}
+const limitedValuePrototype = {
+    add : function(x) {
+        return new LimitedValue(this.min, this.max, this.value + x);
+    },
+    subtract : function(x) {
+        return new LimitedValue(this.min, this.max, this.value - x)
+    },
 }
 
-const create = (min, max, value) => {
-    let that = {
-        limits: {min, max}, 
-        value,
-    };
-    that.add = (x) => {return add(that, x)}
-    that.subtract = (x) => {return add(that,-x)}
-    return that;
-    };
+Object.assign(LimitedValue.prototype, limitedValuePrototype);
 
-module.exports = {
-    create
-};
+module.exports = LimitedValue;
