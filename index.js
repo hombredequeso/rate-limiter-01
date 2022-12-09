@@ -18,15 +18,15 @@ function TokenBucket(capacity) {
     this.limited = new LimitedValue(0, capacity, capacity);
 }
 const tokenBucketPrototype = {
-    fill : function() {
-        const filled = this.limited.add(1);
+    fill : function(amount) {
+        const filled = this.limited.add(amount || 1);
         const success = filled.value != this.limited.value;
         this.limited = filled;
         return success;
     },
 
-    processRequest : function () {
-        const emptied = this.limited.subtract(1);
+    processRequest : function (requestCost) {
+        const emptied = this.limited.subtract(requestCost || 1);
         const success = emptied.value != this.limited.value;
         this.limited = emptied;
         return success;
