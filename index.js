@@ -7,58 +7,34 @@ const loggerMiddleware = function(req, res, next) {
     next();
 }
 
-// incrementing and decrementing within limits
-const limitedIncrement = (current, limit) => (current === limit)? current: current + 1;
-const limitedDecrement = (current, limit) => (current === limit)? current: current - 1;
-
-const fillTokenBucket = (bucket) => {
-    const newTokens = limitedIncrement(bucket.tokens, bucket.capacity);
-    return [
-        {
-            capacity: bucket.capacity,
-            tokens: newTokens
-        },
-        bucket.tokens != newTokens
-    ];
-}
-
-const emptyTokenBucket = (bucket) => {
-    const newTokens = limitedDecrement(bucket.tokens, 0);
-    return [
-        {
-            capacity: bucket.capacity,
-            tokens: newTokens
-        },
-        bucket.tokens != newTokens
-    ];
-}
-
+const limitedValue = require('./limitedValue');
 
 // createTokenBucket: given a capacity, return fill function, and processRequest function
 // Can be tested using fill function.
 // Just like (real) Object Oriented :-) . You send it messages and that's it!
 const createTokenBucket = (capacity) => {
-    var tokenBucket = {
-        capacity: capacity,
-        tokens: capacity 
-    };
+    const limits = limitedValue.getLimits(0, capacity);
+    var tokenCount = capacity;
 
     const fill = () => {
-        const [newBucket, _success] = fillTokenBucket(tokenBucket);
-        tokenBucket = newBucket;
+        const newCount = limitedValue.add(limits, tokenCount, 1);
+        const success = newCount != tokenCount;
+        tokenCount = newCount;
+        return success;
     }
 
     const processRequest = () => {
-        const [newBucket, success] = emptyTokenBucket(tokenBucket);
-        tokenBucket = newBucket;
+        const newCount = limitedValue.subtract(limits, tokenCount, 1);
+        const success = newCount != tokenCount;
+        tokenCount = newCount;
         return success;
     }
-    return [fill, processRequest];
+    return {fill, processRequest};
 }
 
 // Setup the bucket:
 const bucketCapacity = 4;
-const [fill, processRequest] = createTokenBucket(bucketCapacity);
+const {fill, processRequest} = createTokenBucket(bucketCapacity);
 const twoSeconds = 2000;
 setInterval(() => {
     fill();
@@ -70,6 +46,7 @@ const serviceRateLimiterMiddleware = (req, res, next) => {
         next();
         return;
     }
+    console.log("Limited")
     res.status(429).send({});
 }
 
