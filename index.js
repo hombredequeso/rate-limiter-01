@@ -12,36 +12,39 @@ const LimitedValue = require('./limitedValue');
 // createTokenBucket: given a capacity, return fill function, and processRequest function
 // Can be tested using fill function.
 // Just like (real) Object Oriented :-) . You send it messages and that's it!
-const createTokenBucket = (capacity) => {
-    var limited = new LimitedValue(0, capacity, capacity);
 
-    const fill = () => {
-        const filled = limited.add(1);
-        const success = filled.value != limited.value;
-        limited = filled;
-        return success;
-    }
-
-    const processRequest = () => {
-        const emptied = limited.subtract(1);
-        const success = emptied.value != limited.value;
-        limited = emptied;
-        return success;
-    }
-    return {fill, processRequest};
+function TokenBucket(capacity) {
+    this.limited = new LimitedValue(0, capacity, capacity);
 }
+const tokenBucketPrototype = {
+    fill : function() {
+        const filled = this.limited.add(1);
+        const success = filled.value != this.limited.value;
+        this.limited = filled;
+        return success;
+    },
+
+    processRequest : function () {
+        const emptied = this.limited.subtract(1);
+        const success = emptied.value != this.limited.value;
+        this.limited = emptied;
+        return success;
+    }
+}
+Object.assign(TokenBucket.prototype, tokenBucketPrototype);
 
 // Setup the bucket:
 const bucketCapacity = 4;
-const {fill, processRequest} = createTokenBucket(bucketCapacity);
+const tokenBucket = new TokenBucket(bucketCapacity);
+
 const twoSeconds = 2000;
 setInterval(() => {
-    fill();
+    tokenBucket.fill();
 }, twoSeconds);
 
 // middleware limiter:
 const serviceRateLimiterMiddleware = (req, res, next) => {
-    if (processRequest()) {
+    if (tokenBucket.processRequest()) {
         next();
         return;
     }
