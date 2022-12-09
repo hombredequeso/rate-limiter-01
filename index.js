@@ -9,9 +9,10 @@ const loggerMiddleware = function(req, res, next) {
 
 const LimitedValue = require('./limitedValue');
 
-// createTokenBucket: given a capacity, return fill function, and processRequest function
-// Can be tested using fill function.
-// Just like (real) Object Oriented :-) . You send it messages and that's it!
+// TokenBucket is the state management of LimitedValue.
+// Practically LimitedValue is immutable
+// TokenBucket carries the state, and provides an interface
+//    implementing the Bucket filling model.
 
 function TokenBucket(capacity) {
     this.limited = new LimitedValue(0, capacity, capacity);
