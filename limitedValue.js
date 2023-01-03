@@ -11,10 +11,13 @@ function LimitedValue(min, max, value) {
 }
 const limitedValuePrototype = {
   add: function (x) {
-    return new LimitedValue(this.min, this.max, this.value + x);
+    const newValue = this.value + x;
+    if (newValue > this.max) return this;
+    if (newValue < this.min) return this;
+    return new LimitedValue(this.min, this.max, newValue);
   },
   subtract: function (x) {
-    return new LimitedValue(this.min, this.max, this.value - x)
+    return this.add(-x);
   },
 }
 

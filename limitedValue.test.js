@@ -7,30 +7,52 @@ test('create limited value works', () => {
   expect(limited.max).toBe(3);
 });
 
+describe('limitedValue.add', ()=> {
+  test('allows add within range', () => {
+    const a = new LimitedValue(1, 100, 10);
+    expect(a.add(1)).toEqual(
+      new LimitedValue(1,100, 11));
+  });
 
-test('add limited value works', () => {
-  const a = new LimitedValue(1, 100, 10);
-  const b = a.add(1);
-  expect(b.value).toBe(11);
-});
+  test('disallows add outside range upper bound', () => {
+    const a = new LimitedValue(1, 100, 99);
+    expect(a.add(2)).toEqual(a);
+  });
 
-test('subtract limited value works', () => {
-  const a = new LimitedValue(1, 100, 10);
-  const b = a.subtract(1);
-  expect(b.value).toBe(9);
-});
+
+  test('disallows add outside range lower bound', () => {
+    const a = new LimitedValue(1, 100, 2);
+    expect(a.add(-3)).toEqual(
+      new LimitedValue(1,100, 2));
+  });
+})
+
+describe('limitedValue.subtract', ()=> {
+  test('allows subtract within range', () => {
+    const a = new LimitedValue(1, 100, 10);
+    expect(a.subtract(1)).toEqual(
+      new LimitedValue(1,100, 9));
+  });
+
+  test('disallows add outside range lower bound', () => {
+    const a = new LimitedValue(1, 100, 2);
+    expect(a.subtract(3)).toEqual(a);
+  });
+
+  test('disallows add outside range upper bound', () => {
+    const a = new LimitedValue(1, 100, 99);
+    expect(a.subtract(-2)).toEqual(a);
+  });
+})
 
 const fc = require('fast-check');
 
 const minMaxArb = fc.integer().chain(min => fc.tuple(fc.constant(min), fc.integer({ min })));
 
-const minMaxAndValuesInRange = (count) =>
-  fc.integer()
+const naturalLimitedValue = 
+  fc.nat()
     .chain(min => fc.tuple(fc.constant(min), fc.integer({ min })))
-    .chain(([min, max]) => fc.tuple(
-      fc.constant(min),
-      fc.constant(max),
-      fc.array(fc.integer({ min, max }), { minLength: count, maxLength: count })));
+    .chain(([min, max]) => new LimitedValue(min, max, fc.integer({min,max})));
 
 const minMaxAndValuesInRangeNat = (count) =>
   fc.nat()
@@ -63,32 +85,29 @@ test('adding to a LimitedValue is within range and greater than or equal to star
   );
 })
 
-test('Adding is commutative', () => {
+test('adding and subtracting invert one another, if adding works', () => {
   fc.assert(
-    fc.property(minMaxAndValuesInRange(2), ([min, max, values]) => {
-      // console.log({ min, max, values })
-
-      const limited1 = new LimitedValue(min, max, values[0]).add(values[1]);
-      const limited2 = new LimitedValue(min, max, values[1]).add(values[0]);
-
-      expect(limited1.value).toBe(limited2.value);
+    fc.property(minMaxAndValuesInRangeNat(2), ([min, max, [a, b]]) => {
+      const limitedA = new LimitedValue(min, max, a);
+      const result = limitedA.add(b).subtract(b);
+      if (a+b <= max) 
+        expect(result).toEqual(limitedA)
+      else 
+        expect(result.value).toBeLessThanOrEqual(limitedA.value);
     })
-  );
+  )
 })
 
-// Note that adding is not associative for integers. e.g. this would fail: [0, 1, [1,1,-1]]
-test('Adding is associative for natural numbers', () => {
+test('subtracting then adding invert one another, if subtracting works', () => {
   fc.assert(
-    fc.property(minMaxAndValuesInRangeNat(3), ([min, max, [a, b, c]]) => {
-
-      const limited1 = new LimitedValue(min, max, a).add(b);
-      const result1 = limited1.add(c);
-      const limited2 = new LimitedValue(min, max, a);
-      const limited3 = new LimitedValue(min, max, b).add(c);
-      const result2 = limited2.add(limited3.value);
-
-      expect(result1.value).toBe(result2.value);
+    fc.property(minMaxAndValuesInRangeNat(2), ([min, max, [a, b]]) => {
+      const limitedA = new LimitedValue(min, max, a);
+      const result = limitedA.subtract(b).add(b);
+      if (a-b >= min) 
+        expect(result).toEqual(limitedA)
+      else 
+        expect(result.value).toBeGreaterThanOrEqual(limitedA.value);
     })
-  );
+  )
 })
 
