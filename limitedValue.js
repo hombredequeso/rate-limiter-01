@@ -19,6 +19,12 @@ const limitedValuePrototype = {
   subtract: function (x) {
     return this.add(-x);
   },
+  truncatedAdd: function (x) {
+    return new LimitedValue(this.min, this.max, this.value + x);
+  },
+  truncatedSubtract: function (x) {
+    return this.truncatedAdd(-x);
+  }
 }
 
 Object.assign(LimitedValue.prototype, limitedValuePrototype);

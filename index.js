@@ -7,45 +7,17 @@ const loggerMiddleware = function (req, res, next) {
   next();
 }
 
-const LimitedValue = require('./limitedValue');
+const TokenBucket = require('./tokenBucket');
 
-// TokenBucket is the state management of LimitedValue.
-// Practically LimitedValue is immutable
-// TokenBucket carries the state, and provides an interface
-//    implementing the Bucket filling model.
-
-function TokenBucket(capacity) {
-  this.limited = new LimitedValue(0, capacity, capacity);
-}
-const tokenBucketPrototype = {
-  fill: function (amount) {
-    const filled = this.limited.add(amount || 1);
-    const success = filled.value != this.limited.value;
-    this.limited = filled;
-    return success;
-  },
-
-  processRequest: function (requestCost) {
-    const emptied = this.limited.subtract(requestCost || 1);
-    const success = emptied.value != this.limited.value;
-    this.limited = emptied;
-    return success;
-  }
-}
-Object.assign(TokenBucket.prototype, tokenBucketPrototype);
 
 // Setup the bucket:
 const bucketCapacity = 4;
-const tokenBucket = new TokenBucket(bucketCapacity);
-
-const twoSeconds = 2000;
-setInterval(() => {
-  tokenBucket.fill();
-}, twoSeconds);
+const fillRateTokensPerSecond = 0.5;
+const tokenBucket = new TokenBucket(bucketCapacity, fillRateTokensPerSecond, Date.now());
 
 // middleware limiter:
 const serviceRateLimiterMiddleware = (req, res, next) => {
-  if (tokenBucket.processRequest()) {
+  if (tokenBucket.fillAndProcessRequest(Date.now(), 1)) {
     next();
     return;
   }

@@ -45,6 +45,44 @@ describe('limitedValue.subtract', ()=> {
   });
 })
 
+describe('limitedValue.truncatedAdd', () => {
+  test('adds full amount within range', () => {
+    const a = new LimitedValue(1, 100, 10);
+    expect(a.truncatedAdd(1)).toEqual(
+      new LimitedValue(1,100, 11));
+  });
+
+  test('adds to max amount when add outside range upper bound', () => {
+    const a = new LimitedValue(1, 100, 99);
+    expect(a.truncatedAdd(2)).toEqual(new LimitedValue(1, 100, 100));
+  });
+
+  test('adds to min when add outside range lower bound', () => {
+    const a = new LimitedValue(1, 100, 2);
+    expect(a.truncatedAdd(-3)).toEqual(
+      new LimitedValue(1,100, 1));
+  });
+})
+
+describe('limitedValue.truncatedSubtract', () => {
+  test('subtracts full amount within range', () => {
+    const a = new LimitedValue(1, 100, 10);
+    expect(a.truncatedSubtract(1)).toEqual(
+      new LimitedValue(1,100, 9));
+  });
+
+  test('subtracts to min amount when subtract outside range lower bound', () => {
+    const a = new LimitedValue(1, 100, 2);
+    expect(a.truncatedSubtract(2)).toEqual(new LimitedValue(1, 100, 1));
+  });
+
+  test('subtracts to max when subtract above range upper bound', () => {
+    const a = new LimitedValue(1, 100, 99);
+    expect(a.truncatedSubtract(-3)).toEqual(
+      new LimitedValue(1,100, 100));
+  });
+})
+
 const fc = require('fast-check');
 
 const minMaxArb = fc.integer().chain(min => fc.tuple(fc.constant(min), fc.integer({ min })));
