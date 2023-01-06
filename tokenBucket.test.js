@@ -1,5 +1,5 @@
 
-const TokenBucket = require('./tokenBucket');
+const {TokenBucket, save, retrieve} = require('./tokenBucket');
 const LimitedValue = require('./limitedValue');
 
 describe('TokenBucket', ()=> {

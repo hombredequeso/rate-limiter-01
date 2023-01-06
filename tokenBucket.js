@@ -4,13 +4,19 @@
 // TokenBucket carries the state, and provides an interface
 //    implementing the Bucket filling model.
 
-const LimitedValue = require('./limitedValue');
 
+const {LimitedValue, LimitedValuePersisted} = require('./limitedValue');
 
 function TokenBucket(capacity, fillRateTokensPerSecond, fillTime) {
   this.fillTime = fillTime;
   this.fillRateTokensPerSecond = fillRateTokensPerSecond;   
   this.limited = new LimitedValue(0, capacity, capacity);
+}
+
+function TokenBucketPersisted(retrievedTokenBucket) {
+  this.fillTime = retrievedTokenBucket.fillTime;
+  this.fillRateTokensPerSecond = retrievedTokenBucket.fillRateTokensPerSecond;   
+  this.limited = new LimitedValuePersisted(retrievedTokenBucket.limited);
 }
 
 const tokenBucketPrototype = {
@@ -40,5 +46,23 @@ const tokenBucketPrototype = {
 }
 
 Object.assign(TokenBucket.prototype, tokenBucketPrototype);
+Object.assign(TokenBucketPersisted.prototype, tokenBucketPrototype);
 
-module.exports = TokenBucket;
+
+const tokenBucketKey = `tokenbucket:api`;
+async function save(tokenBucket, redisClient) {
+  const value = JSON.stringify(tokenBucket);
+  await redisClient.set(`tokenbucket:api:object`, value);
+}
+
+async function retrieve(redisClient) {
+  const value = await redisClient.get(`tokenbucket:api:object`);
+  const deserializedValue = JSON.parse(value);
+  const tokenBucket = new TokenBucketPersisted(deserializedValue);
+  return tokenBucket;
+}
+
+module.exports = {
+  TokenBucket,
+  save,
+  retrieve};

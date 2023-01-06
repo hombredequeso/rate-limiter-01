@@ -9,6 +9,13 @@ function LimitedValue(min, max, value) {
   this.max = max;
   this.value = limitValue(this.min, this.max, value);
 }
+
+function LimitedValuePersisted(retrievedLimitedValue) {
+  this.min = retrievedLimitedValue.min;
+  this.max = retrievedLimitedValue.max;
+  this.value = limitValue(this.min, this.max, retrievedLimitedValue.value);
+}
+
 const limitedValuePrototype = {
   add: function (x) {
     const newValue = this.value + x;
@@ -28,5 +35,8 @@ const limitedValuePrototype = {
 }
 
 Object.assign(LimitedValue.prototype, limitedValuePrototype);
+Object.assign(LimitedValuePersisted.prototype, limitedValuePrototype);
 
-module.exports = LimitedValue;
+module.exports = {
+  LimitedValue,
+  LimitedValuePersisted};
