@@ -27,7 +27,7 @@ while true; do curl localhost:3000; sleep 1; done
 
 ## Redis Hints
 
-To connect redis-cli and view that gets persisted try:
+To connect redis-cli and view what gets persisted try:
 ```
 docker run -it --rm --network host redis redis-cli -u redis://127.0.0.1:6379
 

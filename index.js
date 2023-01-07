@@ -8,7 +8,7 @@ const loggerMiddleware = function (req, res, next) {
 }
 
 const createClient = require('redis').createClient;
-const redisClient = createClient(); 
+const redisClient = createClient();
 redisClient.on('error', (err) => console.log('Redis Client Error', err));
 
 
@@ -16,21 +16,21 @@ redisClient.on('error', (err) => console.log('Redis Client Error', err));
 
   await redisClient.connect();
 
-  const {TokenBucket, save, retrieve} = require('./tokenBucket');
+  const { TokenBucket, save, retrieve } = require('./tokenBucket');
 
   // Setup the bucket:
-  const bucketCapacity = 4;
-  const fillRateTokensPerSecond = 0.5;
-  const tokenBucket = new TokenBucket(bucketCapacity, fillRateTokensPerSecond, Date.now());
-  tokenBucket.fill(10);
-  await save(tokenBucket, redisClient);
+  // const bucketCapacity = 4;
+  // const fillRateTokensPerSecond = 0.5;
+  // const tokenBucket = new TokenBucket(bucketCapacity, fillRateTokensPerSecond, Date.now());
+  // tokenBucket.fill(10);
+  // await save(tokenBucket, redisClient);
 
   // middleware limiter:
   const serviceRateLimiterMiddleware = async (req, res, next) => {
     const retrievedTokenBucket = await retrieve(redisClient);
     const fillResult = retrievedTokenBucket.fillAndProcessRequest(Date.now(), 1);
-    save(retrievedTokenBucket, redisClient);
-    if (fillResult) {
+    const saveResult = await save(retrievedTokenBucket, redisClient);
+    if (saveResult && fillResult) {
       next();
       return;
     }
