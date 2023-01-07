@@ -1,4 +1,4 @@
-const LimitedValue = require('./limitedValue');
+const { LimitedValue } = require('./limitedValue');
 
 test('create limited value works', () => {
   const limited = new LimitedValue(1, 3, 2);
@@ -7,11 +7,11 @@ test('create limited value works', () => {
   expect(limited.max).toBe(3);
 });
 
-describe('limitedValue.add', ()=> {
+describe('limitedValue.add', () => {
   test('allows add within range', () => {
     const a = new LimitedValue(1, 100, 10);
     expect(a.add(1)).toEqual(
-      new LimitedValue(1,100, 11));
+      new LimitedValue(1, 100, 11));
   });
 
   test('disallows add outside range upper bound', () => {
@@ -23,15 +23,15 @@ describe('limitedValue.add', ()=> {
   test('disallows add outside range lower bound', () => {
     const a = new LimitedValue(1, 100, 2);
     expect(a.add(-3)).toEqual(
-      new LimitedValue(1,100, 2));
+      new LimitedValue(1, 100, 2));
   });
 })
 
-describe('limitedValue.subtract', ()=> {
+describe('limitedValue.subtract', () => {
   test('allows subtract within range', () => {
     const a = new LimitedValue(1, 100, 10);
     expect(a.subtract(1)).toEqual(
-      new LimitedValue(1,100, 9));
+      new LimitedValue(1, 100, 9));
   });
 
   test('disallows add outside range lower bound', () => {
@@ -49,7 +49,7 @@ describe('limitedValue.truncatedAdd', () => {
   test('adds full amount within range', () => {
     const a = new LimitedValue(1, 100, 10);
     expect(a.truncatedAdd(1)).toEqual(
-      new LimitedValue(1,100, 11));
+      new LimitedValue(1, 100, 11));
   });
 
   test('adds to max amount when add outside range upper bound', () => {
@@ -60,7 +60,7 @@ describe('limitedValue.truncatedAdd', () => {
   test('adds to min when add outside range lower bound', () => {
     const a = new LimitedValue(1, 100, 2);
     expect(a.truncatedAdd(-3)).toEqual(
-      new LimitedValue(1,100, 1));
+      new LimitedValue(1, 100, 1));
   });
 })
 
@@ -68,7 +68,7 @@ describe('limitedValue.truncatedSubtract', () => {
   test('subtracts full amount within range', () => {
     const a = new LimitedValue(1, 100, 10);
     expect(a.truncatedSubtract(1)).toEqual(
-      new LimitedValue(1,100, 9));
+      new LimitedValue(1, 100, 9));
   });
 
   test('subtracts to min amount when subtract outside range lower bound', () => {
@@ -79,7 +79,7 @@ describe('limitedValue.truncatedSubtract', () => {
   test('subtracts to max when subtract above range upper bound', () => {
     const a = new LimitedValue(1, 100, 99);
     expect(a.truncatedSubtract(-3)).toEqual(
-      new LimitedValue(1,100, 100));
+      new LimitedValue(1, 100, 100));
   });
 })
 
@@ -87,10 +87,10 @@ const fc = require('fast-check');
 
 const minMaxArb = fc.integer().chain(min => fc.tuple(fc.constant(min), fc.integer({ min })));
 
-const naturalLimitedValue = 
+const naturalLimitedValue =
   fc.nat()
     .chain(min => fc.tuple(fc.constant(min), fc.integer({ min })))
-    .chain(([min, max]) => new LimitedValue(min, max, fc.integer({min,max})));
+    .chain(([min, max]) => new LimitedValue(min, max, fc.integer({ min, max })));
 
 const minMaxAndValuesInRangeNat = (count) =>
   fc.nat()
@@ -128,9 +128,9 @@ test('adding and subtracting invert one another, if adding works', () => {
     fc.property(minMaxAndValuesInRangeNat(2), ([min, max, [a, b]]) => {
       const limitedA = new LimitedValue(min, max, a);
       const result = limitedA.add(b).subtract(b);
-      if (a+b <= max) 
+      if (a + b <= max)
         expect(result).toEqual(limitedA)
-      else 
+      else
         expect(result.value).toBeLessThanOrEqual(limitedA.value);
     })
   )
@@ -141,9 +141,9 @@ test('subtracting then adding invert one another, if subtracting works', () => {
     fc.property(minMaxAndValuesInRangeNat(2), ([min, max, [a, b]]) => {
       const limitedA = new LimitedValue(min, max, a);
       const result = limitedA.subtract(b).add(b);
-      if (a-b >= min) 
+      if (a - b >= min)
         expect(result).toEqual(limitedA)
-      else 
+      else
         expect(result.value).toBeGreaterThanOrEqual(limitedA.value);
     })
   )

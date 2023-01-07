@@ -1,8 +1,8 @@
 
-const {TokenBucket, save, retrieve} = require('./tokenBucket');
-const LimitedValue = require('./limitedValue');
+const { TokenBucket, save, retrieve } = require('./tokenBucket');
+const { LimitedValue } = require('./limitedValue');
 
-describe('TokenBucket', ()=> {
+describe('TokenBucket', () => {
   test('constructs as expected', () => {
     const capacity = 100;
     const fillRateTokensPerSecond = 0.5;
@@ -10,9 +10,9 @@ describe('TokenBucket', ()=> {
     const tokenBucket = new TokenBucket(capacity, fillRateTokensPerSecond, fillTime);
 
     const expectedTokenBucket = {
-      fillTime : fillTime,
-      fillRateTokensPerSecond : fillRateTokensPerSecond,
-      limited : new LimitedValue(0, capacity, capacity)
+      fillTime: fillTime,
+      fillRateTokensPerSecond: fillRateTokensPerSecond,
+      limited: new LimitedValue(0, capacity, capacity)
     };
 
     expect(tokenBucket).toEqual(expectedTokenBucket);
