@@ -1,4 +1,5 @@
 const express = require('express');
+var args = require('node-args');
 const app = express();
 const port = 3000;
 
@@ -11,25 +12,31 @@ const createClient = require('redis').createClient;
 const redisClient = createClient();
 redisClient.on('error', (err) => console.log('Redis Client Error', err));
 
+function delayMs(millisec) {
+  return new Promise(resolve => {
+    setTimeout(() => { resolve('') }, millisec);
+  })
+}
+
+let saveDelayMs = args.d || args.delay;
 
 (async () => {
 
   await redisClient.connect();
 
-  const { TokenBucket, save, retrieve } = require('./tokenBucket');
-
-  // Setup the bucket:
-  // const bucketCapacity = 4;
-  // const fillRateTokensPerSecond = 0.5;
-  // const tokenBucket = new TokenBucket(bucketCapacity, fillRateTokensPerSecond, Date.now());
-  // tokenBucket.fill(10);
-  // await save(tokenBucket, redisClient);
+  const { TokenBucket, save, save2, retrieve, retrieve2 } = require('./tokenBucket');
 
   // middleware limiter:
   const serviceRateLimiterMiddleware = async (req, res, next) => {
-    const retrievedTokenBucket = await retrieve(redisClient);
+    const retrievedTokenBucket = await retrieve2(redisClient, 'api');
     const fillResult = retrievedTokenBucket.fillAndProcessRequest(Date.now(), 1);
-    const saveResult = await save(retrievedTokenBucket, redisClient);
+
+    if (saveDelayMs) {
+      console.log(`delay ${saveDelayMs} ms`);
+      const waitResult = await delayMs(saveDelayMs);
+    }
+
+    const saveResult = await save2(retrievedTokenBucket, redisClient, 'api');
     if (saveResult && fillResult) {
       next();
       return;

@@ -19,13 +19,21 @@ function TokenBucketPersisted(retrievedTokenBucket) {
   this.limited = new LimitedValuePersisted(retrievedTokenBucket.limited);
 }
 
+
+function TokenBucketPersisted2(fillTime, fillRateTokensPerSecond, limited) {
+  this.fillTime = fillTime;
+  this.fillRateTokensPerSecond = fillRateTokensPerSecond;
+  this.limited = limited
+}
+
+
 const tokenBucketPrototype = {
   fillAndProcessRequest: function (time, cost) {
     this.fillAt(time);
     return this.processRequest(cost);
   },
   fillAt: function (time) {
-    const secondsSinceLastFill = Math.floor((time - this.fillTime) / 1000);
+    const secondsSinceLastFill = (time - this.fillTime) / 1000;
     const fillAmount = (secondsSinceLastFill * this.fillRateTokensPerSecond);
     this.fillTime = time;
     return this.fill(fillAmount)
@@ -47,6 +55,7 @@ const tokenBucketPrototype = {
 
 Object.assign(TokenBucket.prototype, tokenBucketPrototype);
 Object.assign(TokenBucketPersisted.prototype, tokenBucketPrototype);
+Object.assign(TokenBucketPersisted2.prototype, tokenBucketPrototype);
 
 function waitforme(millisec) {
   return new Promise(resolve => {
@@ -56,9 +65,6 @@ function waitforme(millisec) {
 
 const tokenBucketKey = `tokenbucket:api`;
 async function save(tokenBucket, redisClient) {
-  console.log("saving with wait...")
-  const waitResult = await waitforme(3000);
-  console.log("... finished waiting")
   const value = JSON.stringify(tokenBucket);
   const result = await redisClient
     .multi()
@@ -68,11 +74,19 @@ async function save(tokenBucket, redisClient) {
       console.log({ err });
       return ['FAILED'];
     });
-  console.log(`multi.set.exec result: ${result}`)
-  const resultStr = result.join(':');
-  console.log(`type: ${typeof result}; obj: ${JSON.stringify(result)}; elements: ${resultStr}`);
-  console.log(`${result[0]}; ${typeof result[0]}`)
-  // await multi.set(`tokenbucket:api:object`, value);
+  return result[0] === 'OK';
+}
+
+async function save2(tokenBucket, redisClient, key) {
+  const result = await redisClient
+    .multi()
+    .set(`tokenbucket:${key}:limited.value`, tokenBucket.limited.value)
+    .set(`tokenbucket:${key}:filltime`, tokenBucket.fillTime)
+    .exec()
+    .catch((err) => {
+      console.log({ err });
+      return ['FAILED'];
+    });
   return result[0] === 'OK';
 }
 
@@ -92,8 +106,38 @@ async function retrieve(redisClient) {
   return tokenBucket;
 }
 
+const defaultBucketCapacity = 4;
+const defaultFillRateTokensPerSecond = 0.5;
+
+const timeToFillSeconds = defaultBucketCapacity / defaultFillRateTokensPerSecond;
+// Could set a TTL of something greater than this, and system would work.
+
+async function retrieve2(redisClient, key) {
+
+  await redisClient.watch(`tokenbucket:${key}:limited.value`);
+  await redisClient.watch(`tokenbucket:${key}:filltime`);
+
+  const limitedValueS = await redisClient.get(`tokenbucket:${key}:limited.value`);
+  const fillTimeS = await redisClient.get(`tokenbucket:${key}:filltime`);
+
+  const limitedValue = parseFloat(limitedValueS);
+  const fillTime = parseInt(fillTimeS);
+
+  if (limitedValue === null || Number.isNaN(limitedValue)) {
+    const newTokenBucket = new TokenBucket(defaultBucketCapacity, defaultFillRateTokensPerSecond, Date.now());
+    return newTokenBucket;
+  }
+
+  const limited = new LimitedValue(0, defaultBucketCapacity, limitedValue);
+  const tokenBucket = new TokenBucketPersisted2(fillTime, defaultFillRateTokensPerSecond, limited);
+  return tokenBucket;
+}
+
+
 module.exports = {
   TokenBucket,
   save,
-  retrieve
+  retrieve,
+  save2,
+  retrieve2
 };
