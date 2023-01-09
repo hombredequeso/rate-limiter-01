@@ -29,6 +29,13 @@ To introduce delays before saving to redis use -d with number of milliseconds (e
 yarn start -d 2000
 ```
 
+For a request to specify a user set a 'user' header. Rate limiting is per user. 
+e.g.
+```
+curl localhost:3000 -H "user:123"
+```
+
+
 ## Redis Hints
 
 To connect redis-cli and view what gets persisted try:
@@ -65,10 +72,13 @@ redis-non-transactional
 redis-serialized-atomic
 
 * persistence: redis, serialized entity, atomic
+    * (note) Doesn't use the RedisJSON module - purely for pedagogical simplicity.
 * Uses optimistic concurrency (via redis WATCH).
 * alternatives/questions about how to treat errors - and what is an error (esp. tokenBucket.save - what should we do in catch? We have to at least do something when optimistic concurrency fails, which it does with an exception.)
 
-up next
+redis-multiple-basic-keys-atomic
 
 * persistence: redis, simple keys, atomic
+* User optimistic concurrency on multiple keys, all of which are components of the same object.
+* this avoid object serialization/deserialization, which may be considered desirable.
 

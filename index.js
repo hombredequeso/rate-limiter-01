@@ -28,7 +28,8 @@ let saveDelayMs = args.d || args.delay;
 
   // middleware limiter:
   const serviceRateLimiterMiddleware = async (req, res, next) => {
-    const retrievedTokenBucket = await retrieve2(redisClient, 'api');
+    const userId = req.header('user') || 'api';
+    const retrievedTokenBucket = await retrieve2(redisClient, userId);
     const fillResult = retrievedTokenBucket.fillAndProcessRequest(Date.now(), 1);
 
     if (saveDelayMs) {
@@ -36,7 +37,7 @@ let saveDelayMs = args.d || args.delay;
       const waitResult = await delayMs(saveDelayMs);
     }
 
-    const saveResult = await save2(retrievedTokenBucket, redisClient, 'api');
+    const saveResult = await save2(retrievedTokenBucket, redisClient, userId);
     if (saveResult && fillResult) {
       next();
       return;
